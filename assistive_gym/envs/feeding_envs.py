@@ -1,10 +1,11 @@
 from .feeding import FeedingEnv
 from .feeding_mesh import FeedingMeshEnv
-from .agents import pr2, baxter, sawyer, jaco, stretch, panda, tiago, human, human_mesh
+from .agents import pr2, baxter, sawyer, jaco, mico, stretch, panda, tiago, human, human_mesh
 from .agents.pr2 import PR2
 from .agents.baxter import Baxter
 from .agents.sawyer import Sawyer
 from .agents.jaco import Jaco
+from .agents.mico import Mico
 from .agents.stretch import Stretch
 from .agents.panda import Panda
 from .agents.tiago import TIAGo
@@ -43,6 +44,11 @@ class FeedingTIAGoEnv(FeedingEnv):
     def __init__(self):
         super(FeedingTIAGoEnv, self).__init__(robot=TIAGo(robot_arm), human=Human(human_controllable_joint_indices, controllable=False))
 
+class FeedingMicoEnv(FeedingEnv):
+    def __init__(self):
+        super(FeedingMicoEnv, self).__init__(robot=Mico(robot_arm), human=Human(human_controllable_joint_indices, controllable=False))        
+
+
 class FeedingPR2HumanEnv(FeedingEnv, MultiAgentEnv):
     def __init__(self):
         super(FeedingPR2HumanEnv, self).__init__(robot=PR2(robot_arm), human=Human(human_controllable_joint_indices, controllable=True))
@@ -78,6 +84,12 @@ class FeedingTIAGoHumanEnv(FeedingEnv, MultiAgentEnv):
         super(FeedingTIAGoHumanEnv, self).__init__(robot=TIAGo(robot_arm), human=Human(human_controllable_joint_indices, controllable=True))
 register_env('assistive_gym:FeedingTIAGoHuman-v1', lambda config: FeedingTIAGoHumanEnv())
 
+class FeedingMicoHumanEnv(FeedingEnv, MultiAgentEnv):
+    def __init__(self):
+        super(FeedingMicoHumanEnv, self).__init__(robot=Mico(robot_arm), human=Human(human_controllable_joint_indices, controllable=True))
+register_env('assistive_gym:FeedingMicoHuman-v1', lambda config: FeedingMicoHumanEnv())
+
+
 class FeedingPR2MeshEnv(FeedingMeshEnv):
     def __init__(self):
         super(FeedingPR2MeshEnv, self).__init__(robot=PR2(robot_arm), human=HumanMesh())
@@ -105,3 +117,7 @@ class FeedingPandaMeshEnv(FeedingMeshEnv):
 class FeedingTIAGoMeshEnv(FeedingMeshEnv):
     def __init__(self):
         super(FeedingTIAGoMeshEnv, self).__init__(robot=TIAGo(robot_arm), human=HumanMesh())
+
+class FeedingMicoMeshEnv(FeedingMeshEnv):
+    def __init__(self):
+        super(FeedingMicoMeshEnv, self).__init__(robot=Mico(robot_arm), human=HumanMesh())
