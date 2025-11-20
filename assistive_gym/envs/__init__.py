@@ -8,5 +8,6 @@ from assistive_gym.envs.dressing_envs import DressingPR2Env, DressingBaxterEnv, 
 from assistive_gym.envs.arm_manipulation_envs import ArmManipulationPR2Env, ArmManipulationBaxterEnv, ArmManipulationSawyerEnv, ArmManipulationJacoEnv, ArmManipulationStretchEnv, ArmManipulationPandaEnv, ArmManipulationTIAGoEnv, ArmManipulationPR2HumanEnv, ArmManipulationBaxterHumanEnv, ArmManipulationSawyerHumanEnv, ArmManipulationJacoHumanEnv, ArmManipulationStretchHumanEnv, ArmManipulationPandaHumanEnv, ArmManipulationTIAGoHumanEnv
 # Adding of object handover environment with static human and with active human for TIAGo robot
 from assistive_gym .envs. object_handover_envs import ObjectHandoverTIAGoEnv, ObjectHandoverTIAGoHumanEnv
+from assistive_gym .envs. sim2real_feeding_envs import Sim2RealFeedingMicoEnv, Sim2RealFeedingMicoHumanEnv
 from assistive_gym.envs.human_testing import HumanTestingEnv
 from assistive_gym.envs.smplx_testing import SMPLXTestingEnv

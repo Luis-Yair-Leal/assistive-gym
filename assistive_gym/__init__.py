@@ -18,6 +18,13 @@ register(
     max_episode_steps=200,
 )
 
+# Mico robot registration for sim to real feeding
+register(
+    id='Sim2RealFeedingMico-v1',
+    entry_point='assistive_gym.envs:Sim2RealFeedingMicoEnv',
+    max_episode_steps=200,
+)
+
 for task in ['ScratchItch', 'Feeding']:
     for robot in robots:
         register(
