@@ -10,7 +10,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
     def __init__(self, robot='mico', human=False):
         # Robot type, human,, task, frame_skipe,  time_step, observations of the robot (18 + joints - wheel joints), human observations (19 + body joints)
         super(Sim2RealFeedingEnv, self).__init__(robot=robot, human=human, task='feeding', frame_skip=5, time_step=0.02, obs_robot_len=(18 + len(robot.controllable_joint_indices) - (len(robot.wheel_joint_indices) if robot.mobile else 0)), obs_human_len=(19 + len(human.controllable_joint_indices)))
-        
+
 
     def step(self, action): # Take step given an action
         '''In the step function, we have to consider the actions made by the agent in a unique time step and the output must be the observations after taking the actions by the agent,
@@ -250,7 +250,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         self.foods = [f for f in self.foods if f not in foods_to_remove]
         self.foods_active = [f for f in self.foods_active if f not in foods_active_to_remove]
 
-        reward = - 1.0 * tilt_penalty - 0.5 * angular_change - 0.25 * food_velocity + 0.01 * reward_force_nontarget
+        reward = - 1.0 * tilt_penalty - 0.25 * food_velocity + 0.01 * reward_force_nontarget # - 0.5 * angular_change
 
         return food_reward, reward, distance_to_mouth
 

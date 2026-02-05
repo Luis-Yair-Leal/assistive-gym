@@ -32,7 +32,7 @@ class Mico(Robot):
                               'drinking': [0, -np.pi/2.0, np.pi/2.0],
                               'bed_bathing': [0, -np.pi/2.0, 0],
                               'arm_manipulation': [np.pi/2.0, -np.pi/2.0, 0]}
-        pos = [-0.35, -0.3, 0.3]
+        pos = [-0.35, -0.75, 0.7] # [-0.35, -0.3, 0.3] wheelchair position
         toc_base_pos_offset = {'scratch_itch': pos, # Robot base offset before TOC base pose optimization
                                'feeding': pos,
                                'drinking': pos,
