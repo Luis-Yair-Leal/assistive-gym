@@ -30,7 +30,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         reward_action = -np.linalg.norm(action) # Penalize actions
 
         # Total reward is composed by distance mouth target, action, food in the spoon and extra preferences
-        reward = self.config('distance_weight')*(-reward_distance_mouth_target) + self.config('action_weight')*reward_action + self.config('food_reward_weight')*reward_food + preferences_score
+        reward = self.config('distance_weight')*(reward_distance_mouth_target) + self.config('action_weight')*reward_action + self.config('food_reward_weight')*reward_food + preferences_score
         # print(self.config('distance_weight')*reward_distance_mouth_target, self.config('action_weight')*reward_action, self.config('food_reward_weight')*reward_food, preferences_score)
 
         if self.gui and reward_food != 0:
@@ -166,6 +166,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         return self._get_obs()
 
     '''
+    Past Reward Functtion (without Sim2Real Considerations)
     def get_food_rewards(self):
         Check all food particles to see if they have left the spoon or entered the person's mouth
         Give the robot a reward or penalty depending on food particle status
@@ -210,15 +211,14 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         foods_to_remove = []
         foods_active_to_remove = []
 
-        # Position and orientation of the spoon
-        spoon_pos, spoon_orient = self.tool.get_base_pos_orient() 
+        spoon_pos, spoon_orient = self.tool.get_base_pos_orient() # Position and orientation of the spoon
         spoon_pos_real, spoon_orient_real = self.robot.convert_to_realworld(spoon_pos, spoon_orient)  # Convert the relative position and orientation to global position and orientation
         roll, pitch, yaw = p.getEulerFromQuaternion(spoon_orient_real) # Convert quaternion to euler
 
-        # Penalty for tilt
-        tilt_penalty = abs(roll) + abs(pitch)  # Negative reward for tilt
+        # Reward related of tilt
+        tilt_penalty = abs(roll) + abs(pitch)  # Penalty for tilt
 
-        # Penalty for change orientation
+        # Reward related to change orientation
         if self.prev_spoon_orient is not None:
             prev_roll, prev_pitch, _ = p.getEulerFromQuaternion(self.prev_spoon_orient)
             angular_change = abs(roll - prev_roll) + abs(pitch - prev_pitch)
@@ -227,7 +227,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         self.prev_spoon_orient = spoon_orient_real
 
         # Reward for reaching the target
-        distance_to_mouth = np.linalg.norm(self.target_pos - spoon_pos_real)
+        distance_to_mouth = -np.linalg.norm(self.target_pos - spoon_pos_real)
 
         if distance_to_mouth < 0.03:
             food_reward = 100
@@ -250,7 +250,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         self.foods = [f for f in self.foods if f not in foods_to_remove]
         self.foods_active = [f for f in self.foods_active if f not in foods_active_to_remove]
 
-        reward = - 1.0 * tilt_penalty - 0.25 * food_velocity + 0.01 * reward_force_nontarget # - 0.5 * angular_change
+        reward =  - 0.25 * food_velocity + 0.01 * reward_force_nontarget # - 5.0 * tilt_penalty - 0.5 * angular_change
 
         return food_reward, reward, distance_to_mouth
 
