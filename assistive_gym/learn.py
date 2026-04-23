@@ -5,7 +5,6 @@ from ray.rllib.agents import ppo, sac
 from ray.tune.logger import pretty_print
 from numpngw import write_apng
 
-
 def setup_config(env, algo, coop=False, seed=0, extra_configs={}):
     num_processes = multiprocessing.cpu_count()
     if algo == 'ppo':
@@ -55,7 +54,7 @@ def load_policy(env, algo, env_name, policy_path=None, coop=False, seed=0, extra
                 checkpoint_path = os.path.join(directory, 'checkpoint_%s' % files[checkpoint_num], 'checkpoint-%d' % checkpoint_max)
                 agent.restore(checkpoint_path)
                 # return agent, checkpoint_path
-            return agent, None
+            return agent, checkpoint_path ##coment
     return agent, None
 
 def make_env(env_name, coop=False, seed=1001):
@@ -99,8 +98,8 @@ def render_policy(env, env_name, algo, policy_path, coop=False, colab=False, see
         env = make_env(env_name, coop, seed=seed)
         if colab:
             env.setup_camera(camera_eye=[0.5, -0.75, 1.5], camera_target=[-0.2, 0, 0.75], fov=60, camera_width=1920//4, camera_height=1080//4)
-    test_agent, _ = load_policy(env, algo, env_name, policy_path, coop, seed, extra_configs)
-
+    test_agent, checkpoint_path = load_policy(env, algo, env_name, policy_path, coop, seed, extra_configs)
+    print(f"The checkpoint path is: {checkpoint_path}")
     if not colab:
         env.render()
     frames = []

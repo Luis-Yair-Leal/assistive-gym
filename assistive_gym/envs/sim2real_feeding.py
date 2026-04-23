@@ -30,7 +30,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         reward_action = -np.linalg.norm(action) # Penalize actions
 
         # Total reward is composed by distance mouth target, action, food in the spoon and extra preferences
-        reward = self.config('distance_weight')*(reward_distance_mouth_target) + self.config('action_weight')*reward_action + self.config('food_reward_weight')*reward_food + preferences_score
+        reward = -self.config('distance_weight')*(reward_distance_mouth_target) + self.config('action_weight')*reward_action + self.config('food_reward_weight')*reward_food + preferences_score
         # print(self.config('distance_weight')*reward_distance_mouth_target, self.config('action_weight')*reward_action, self.config('food_reward_weight')*reward_food, preferences_score)
 
         if self.gui and reward_food != 0:
@@ -211,14 +211,22 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         foods_to_remove = []
         foods_active_to_remove = []
 
+        # ---------------------------------
+        # Spoon Reward
+        # ---------------------------------
         spoon_pos, spoon_orient = self.tool.get_base_pos_orient() # Position and orientation of the spoon
         spoon_pos_real, spoon_orient_real = self.robot.convert_to_realworld(spoon_pos, spoon_orient)  # Convert the relative position and orientation to global position and orientation
-        roll, pitch, yaw = p.getEulerFromQuaternion(spoon_orient_real) # Convert quaternion to euler
+        roll, pitch, yaw = p.getEulerFromQuaternion(spoon_orient_real) # Convert spoon orientation to euler angles
+        distance_to_mouth = np.linalg.norm(self.target_pos - spoon_pos_real) # Reward for reaching the target
 
+        # ---------------------------------
         # Reward related of tilt
+        # ---------------------------------
         tilt_penalty = abs(roll) + abs(pitch)  # Penalty for tilt
 
-        # Reward related to change orientation
+        # ---------------------------------
+        # Reward related to change orientation (smooth motion)
+        # ---------------------------------
         if self.prev_spoon_orient is not None:
             prev_roll, prev_pitch, _ = p.getEulerFromQuaternion(self.prev_spoon_orient)
             angular_change = abs(roll - prev_roll) + abs(pitch - prev_pitch)
@@ -226,30 +234,26 @@ class Sim2RealFeedingEnv(AssistiveEnv):
             angular_change = 0
         self.prev_spoon_orient = spoon_orient_real
 
-        # Reward for reaching the target
-        distance_to_mouth = -np.linalg.norm(self.target_pos - spoon_pos_real)
-
-        if distance_to_mouth < 0.03:
-            food_reward = 100
-            self.task_success += 1
-            for f in self.foods:   #Food particles on the spoon
-                foods_to_remove.append(f)
-                foods_active_to_remove.append(f)
-                f.set_base_pos_orient(self.np_random.uniform(1000, 2000, size=3), [0, 0, 0, 1])
-        for f in self.foods:
-            if len(f.get_closest_points(self.tool, distance=0.1)[-1]) == 0:  # If particle is no longer close to spoon → spill
-                # Delete particle and give robot a penalty for spilling food
-                foods_to_remove.append(f)
-
-        #Reward for food velocity
+        # ---------------------------------
+        # Reward for food velocity
+        # ---------------------------------
         food_velocity = np.linalg.norm(self.robot.get_velocity(self.robot.right_end_effector))
 
+        # ---------------------------------
         # Penalty for touching the human
+        # ---------------------------------
         reward_force_nontarget = -self.total_force_on_human
 
-        self.foods = [f for f in self.foods if f not in foods_to_remove]
-        self.foods_active = [f for f in self.foods_active if f not in foods_active_to_remove]
+        # ---------------------------------
+        # Tasks success
+        # ---------------------------------
+        if distance_to_mouth < 0.05:
+            food_reward = 10
+            self.task_success += 1
 
+        # ---------------------------------
+        # Reward of preferences score
+        # ---------------------------------
         reward =  - 0.25 * food_velocity + 0.01 * reward_force_nontarget # - 5.0 * tilt_penalty - 0.5 * angular_change
 
         return food_reward, reward, distance_to_mouth
