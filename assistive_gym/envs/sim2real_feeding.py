@@ -1,6 +1,7 @@
 import numpy as np
 import pybullet as p
-
+import csv #
+import os #
 from .env import AssistiveEnv
 from .agents import furniture
 from .agents.furniture import Furniture
@@ -15,8 +16,9 @@ class Sim2RealFeedingEnv(AssistiveEnv):
     def step(self, action): # Take step given an action
         '''In the step function, we have to consider the actions made by the agent in a unique time step and the output must be the observations after taking the actions by the agent,
         the reward and the 'done' flag that indicates if the task has been solved succesfully. We have to change some rewards in order to take only rewards that depends on the observations.'''
-        spoon_pos, spoon_orient = self.tool.get_base_pos_orient()
-        self.prev_spoon_orient = np.array(spoon_orient)
+        spoon_pos, spoon_orient = self.tool.get_base_pos_orient() #  Get the spoon position and orientation
+        self.prev_spoon_orient = np.array(spoon_orient) # Get the previous spoon orientation to compare
+        spoon_orient_euler = p.getEulerFromQuaternion(spoon_orient) # Get euler angles
         
         if self.human.controllable: # If we use colaborative control
             action = np.concatenate([action['robot'], action['human']])
@@ -25,13 +27,39 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         obs = self._get_obs() # Get the observation after the action
 
         # Get human preferences Editar para que vaya dentro de la función de recompensa
-        reward_food, preferences_score, reward_distance_mouth_target = self.get_food_rewards() #Takes the rewards, the velocities list, and special reward for hitting person
+        reward_food, preferences_score, reward_distance_mouth_target = self.get_food_rewards() # Takes the rewards, the velocities list, and special reward for hitting person
 
         reward_action = -np.linalg.norm(action) # Penalize actions
 
         # Total reward is composed by distance mouth target, action, food in the spoon and extra preferences
-        reward = -self.config('distance_weight')*(reward_distance_mouth_target) + self.config('action_weight')*reward_action + self.config('food_reward_weight')*reward_food + preferences_score
+        reward = self.config('distance_weight')*(-reward_distance_mouth_target) + self.config('action_weight')*reward_action + self.config('food_reward_weight')*reward_food + preferences_score
         # print(self.config('distance_weight')*reward_distance_mouth_target, self.config('action_weight')*reward_action, self.config('food_reward_weight')*reward_food, preferences_score)
+        
+        ##############################################################
+        # Get the joint states of the robot
+        _, motor_positions, _, _ = self.robot.get_motor_joint_states()
+        print("\n=== Data from the environment ===")
+        print("\nTarget position", self.target_pos)
+        print("\nSpoon position", spoon_pos)
+        print("\nSpoon orient", spoon_orient_euler)
+        print("\nJoint positions:", motor_positions)
+
+        nombre_archivo = 'trayectoria_robot.csv'
+        
+        # Comprobamos si el archivo ya existe para saber si escribir la cabecera
+        existe = os.path.isfile(nombre_archivo)
+
+        # Usamos 'a' (append) para que NO se borre lo anterior
+        with open(nombre_archivo, mode='a', newline='') as csv_file:
+            writer = csv.writer(csv_file)
+            
+            # Solo escribimos la cabecera la primera vez que se crea el archivo
+            if not existe:
+                writer.writerow(['tx', 'ty', 'tz', 'sx', 'sy', 'sz', 's_roll', 's_pitch', 's_yaw'])
+
+            # Guardamos los datos (asegúrate de que todos sean valores simples)
+            writer.writerow([*self.target_pos, *spoon_pos, *spoon_orient_euler])
+        ##############################################################
 
         if self.gui and reward_food != 0:
             print('Task success:', self.task_success, 'Food reward:', reward_food)
@@ -114,7 +142,8 @@ class Sim2RealFeedingEnv(AssistiveEnv):
 
         self.generate_target()
 
-        p.resetDebugVisualizerCamera(cameraDistance=1.10, cameraYaw=40, cameraPitch=-45, cameraTargetPosition=[-0.2, 0, 0.75], physicsClientId=self.id)
+        #p.resetDebugVisualizerCamera(cameraDistance=1.10, cameraYaw=40, cameraPitch=-45, cameraTargetPosition=[-0.2, 0, 0.75], physicsClientId=self.id)
+        p.resetDebugVisualizerCamera(cameraDistance=1.50, cameraYaw=-40, cameraPitch=-45, cameraTargetPosition=[0.2, 0, 0.75], physicsClientId=self.id)
 
         # Initialize the tool in the robot's gripper
         self.tool.init(self.robot, self.task, self.directory, self.id, self.np_random, right=True, mesh_scale=[0.08]*3)
@@ -166,7 +195,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         return self._get_obs()
 
     '''
-    Past Reward Functtion (without Sim2Real Considerations)
+    Past Reward Function (without Sim2Real Considerations)
     def get_food_rewards(self):
         Check all food particles to see if they have left the spoon or entered the person's mouth
         Give the robot a reward or penalty depending on food particle status
@@ -216,13 +245,15 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         # ---------------------------------
         spoon_pos, spoon_orient = self.tool.get_base_pos_orient() # Position and orientation of the spoon
         spoon_pos_real, spoon_orient_real = self.robot.convert_to_realworld(spoon_pos, spoon_orient)  # Convert the relative position and orientation to global position and orientation
-        roll, pitch, yaw = p.getEulerFromQuaternion(spoon_orient_real) # Convert spoon orientation to euler angles
-        distance_to_mouth = np.linalg.norm(self.target_pos - spoon_pos_real) # Reward for reaching the target
+        #roll, pitch, yaw = p.getEulerFromQuaternion(spoon_orient_real) # Convert spoon orientation to euler angles
+        #distance_to_mouth = np.linalg.norm(self.target_pos - spoon_pos_real) # Reward for reaching the target
+        roll, pitch, yaw = p.getEulerFromQuaternion(spoon_orient) # Convert spoon orientation to euler angles
+        distance_to_mouth = np.linalg.norm(self.target_pos - spoon_pos) # Reward for reaching the target
 
         # ---------------------------------
         # Reward related of tilt
         # ---------------------------------
-        tilt_penalty = abs(roll) + abs(pitch)  # Penalty for tilt
+        tilt_penalty = abs(yaw) + abs(pitch) # Penalty for tilt
 
         # ---------------------------------
         # Reward related to change orientation (smooth motion)
@@ -247,14 +278,20 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         # ---------------------------------
         # Tasks success
         # ---------------------------------
-        if distance_to_mouth < 0.05:
+        if distance_to_mouth < 0.1:
+            for f in self.foods:
+                food_pos, food_orient = f.get_base_pos_orient()
+                distance_to_mouth = np.linalg.norm(self.target_pos - food_pos)
+                if distance_to_mouth < 0.03:
+                    f.set_base_pos_orient(self.np_random.uniform(1000, 2000, size=3), [0, 0, 0, 1])
             food_reward = 10
             self.task_success += 1
+
 
         # ---------------------------------
         # Reward of preferences score
         # ---------------------------------
-        reward =  - 0.25 * food_velocity + 0.01 * reward_force_nontarget # - 5.0 * tilt_penalty - 0.5 * angular_change
+        reward = - 1.0 * tilt_penalty - 0.25 * food_velocity + 0.1 * reward_force_nontarget - 0.25 * angular_change
 
         return food_reward, reward, distance_to_mouth
 

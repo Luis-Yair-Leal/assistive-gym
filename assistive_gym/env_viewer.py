@@ -21,19 +21,6 @@ def viewer(env_name):
         env.render()
         observation = env.reset()
 
-        #############################################
-        # Stabilization of the simulation
-        for _ in range(50):
-            env.step(sample_action(env, coop))
-
-        # Get the joint states of the robot
-        motor_indices, motor_positions, _, _ = env.robot.get_motor_joint_states()
-
-        print("\n=== Joints from the environment ===")
-        print("Indices:", motor_indices)
-        print("Positions:", motor_positions)
-        #############################################
-
         action = sample_action(env, coop)
         if coop:
             print('Robot observation size:', np.shape(observation['robot']), 'Human observation size:', np.shape(observation['human']), 'Robot action size:', np.shape(action['robot']), 'Human action size:', np.shape(action['human']))
