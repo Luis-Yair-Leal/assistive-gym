@@ -39,10 +39,11 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         # Get the joint states of the robot
         _, motor_positions, _, _ = self.robot.get_motor_joint_states()
         print("\n=== Data from the environment ===")
-        print("\nTarget position", self.target_pos)
-        print("\nSpoon position", spoon_pos)
-        print("\nSpoon orient", spoon_orient_euler)
-        print("\nJoint positions:", motor_positions)
+        print("\nTarget position: ", self.target_pos)
+        print("\nSpoon position: ", spoon_pos)
+        print("\nSpoon orient: ", spoon_orient_euler)
+        print("\nJoint positions: ", motor_positions)
+        print("\nObservations: ", obs)
 
         nombre_archivo = 'trayectoria_robot.csv'
         
@@ -291,7 +292,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         # ---------------------------------
         # Reward of preferences score
         # ---------------------------------
-        reward = - 1.0 * tilt_penalty - 0.25 * food_velocity + 0.1 * reward_force_nontarget - 0.25 * angular_change
+        reward = - 1.0 * tilt_penalty - 0.25 * food_velocity + 0.01 * reward_force_nontarget # - 0.25 * angular_change
 
         return food_reward, reward, distance_to_mouth
 
