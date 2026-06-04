@@ -28,9 +28,9 @@ class Furniture(Agent):
             self.controllable_joint_indices = [1]
             super(Furniture, self).init(furniture, id, np_random)
         elif furniture_type == 'table':
-            furniture = p.loadURDF(os.path.join(directory, 'table', 'table_tall.urdf'), basePosition=[0.25, -1.0, 0], baseOrientation=[0, 0, 0, 1], physicsClientId=id)
+            furniture = p.loadURDF(os.path.join(directory, 'table', 'table_tall.urdf'), basePosition=[0.25, -1.0, 0.175], baseOrientation=[0, 0, 0, 1], physicsClientId=id)
         elif furniture_type == 'bowl':
-            bowl_pos = np.array([-0.15, -0.65, 0.75]) + np.array([np_random.uniform(-0.05, 0.05), np_random.uniform(-0.05, 0.05), 0])
+            bowl_pos = np.array([-0.15, -0.65, 0.925]) + np.array([np_random.uniform(-0.05, 0.05), np_random.uniform(-0.05, 0.05), 0])
             furniture = p.loadURDF(os.path.join(directory, 'dinnerware', 'bowl.urdf'), basePosition=bowl_pos, baseOrientation=[0, 0, 0, 1], physicsClientId=id)
         elif furniture_type == 'nightstand':
             furniture = p.loadURDF(os.path.join(directory, 'nightstand', 'nightstand.urdf'), basePosition=np.array([-0.9, 0.7, 0]), baseOrientation=[0, 0, 0, 1], physicsClientId=id)

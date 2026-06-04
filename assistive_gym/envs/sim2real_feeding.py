@@ -2,6 +2,7 @@ import numpy as np
 import pybullet as p
 import csv #
 import os #
+import random
 from .env import AssistiveEnv
 from .agents import furniture
 from .agents.furniture import Furniture
@@ -10,9 +11,42 @@ from .agents.furniture import Furniture
 class Sim2RealFeedingEnv(AssistiveEnv):
     def __init__(self, robot='mico', human=False):
         # Robot type, human,, task, frame_skipe,  time_step, observations of the robot (18 + joints - wheel joints), human observations (19 + body joints)
-        super(Sim2RealFeedingEnv, self).__init__(robot=robot, human=human, task='feeding', frame_skip=5, time_step=0.02, obs_robot_len=(11 + len(robot.controllable_joint_indices) - (len(robot.wheel_joint_indices) if robot.mobile else 0)), obs_human_len=(19 + len(human.controllable_joint_indices)))
+        super(Sim2RealFeedingEnv, self).__init__(robot=robot, human=human, task='feeding', frame_skip=5, time_step=0.02, obs_robot_len=(18 + len(robot.controllable_joint_indices) - (len(robot.wheel_joint_indices) if robot.mobile else 0)), obs_human_len=(19 + len(human.controllable_joint_indices)))
+        self.camera_configs = [
+            {
+                "distance": 1.10,
+                "yaw": 40,
+                "pitch": -45,
+                "target": [0.2, 0.0, 0.75]
+            },
+            {
+                "distance": 1.50,
+                "yaw": 40,
+                "pitch": -45,
+                "target": [0.2, 0.0, 0.75]
+            },
+            {
+                "distance": 1.30,
+                "yaw": 20,
+                "pitch": -40,
+                "target": [0.2, 0.0, 0.75]
+            },
+            {
+                "distance": 1.70,
+                "yaw": 120,
+                "pitch": -50,
+                "target": [0.2, 0.0, 0.75]
+            },
+            {
+                "distance": 2.00,
+                "yaw": 180,
+                "pitch": -30,
+                "target": [0.2, 0.0, 0.75]
+            }
+            ]
 
-
+    #p.resetDebugVisualizerCamera(cameraDistance=1.10, cameraYaw=40, cameraPitch=-45, cameraTargetPosition=[-0.2, 0, 0.75], physicsClientId=self.id)
+        #p.resetDebugVisualizerCamera(cameraDistance=1.50, cameraYaw=-40, cameraPitch=-45, cameraTargetPosition=[0.2, 0, 0.75], physicsClientId=self.id)
     def step(self, action): # Take step given an action
         '''In the step function, we have to consider the actions made by the agent in a unique time step and the output must be the observations after taking the actions by the agent,
         the reward and the 'done' flag that indicates if the task has been solved succesfully. We have to change some rewards in order to take only rewards that depends on the observations.'''
@@ -38,10 +72,11 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         ##############################################################
         # Get the joint states of the robot
         _, motor_positions, _, _ = self.robot.get_motor_joint_states()
+        spoon_pos_real, spoon_orient_real = self.robot.convert_to_realworld(spoon_pos, spoon_orient)
         print("\n=== Data from the environment ===")
-        print("\nTarget position: ", self.target_pos)
-        print("\nSpoon position: ", spoon_pos)
-        print("\nSpoon orient: ", spoon_orient_euler)
+        print("\nTarget position: ", self.robot.convert_to_realworld(self.target_pos))
+        print("\nSpoon position: ", spoon_pos_real)
+        print("\nSpoon orient: ", spoon_orient_real)
         print("\nJoint positions: ", motor_positions)
         print("\nObservations: ", obs)
 
@@ -107,7 +142,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         self.total_force_on_human = self.robot_force_on_human + self.spoon_force_on_human # Total force applied to the human
 
         # OBSERVATIONS OF THE RL MODEL
-        robot_obs = np.concatenate([spoon_pos_real, spoon_orient_real, spoon_pos_real - target_pos_real, robot_joint_angles, [self.spoon_force_on_human]]).ravel()
+        robot_obs = np.concatenate([spoon_pos_real, spoon_orient_real, spoon_pos_real - target_pos_real, robot_joint_angles, head_pos_real, head_orient_real, [self.spoon_force_on_human]]).ravel()
         #robot_obs = np.concatenate([spoon_pos_real, spoon_orient_real, spoon_pos_real - target_pos_real, robot_joint_angles, head_pos_real, head_orient_real, [self.spoon_force_on_human]]).ravel()
         if agent == 'robot':
             return robot_obs
@@ -145,7 +180,16 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         self.generate_target()
 
         #p.resetDebugVisualizerCamera(cameraDistance=1.10, cameraYaw=40, cameraPitch=-45, cameraTargetPosition=[-0.2, 0, 0.75], physicsClientId=self.id)
-        p.resetDebugVisualizerCamera(cameraDistance=1.50, cameraYaw=-40, cameraPitch=-45, cameraTargetPosition=[0.2, 0, 0.75], physicsClientId=self.id)
+        #p.resetDebugVisualizerCamera(cameraDistance=1.50, cameraYaw=-40, cameraPitch=-45, cameraTargetPosition=[0.2, 0, 0.75], physicsClientId=self.id)
+        camera_cfg = random.choice(self.camera_configs)
+
+        p.resetDebugVisualizerCamera(
+            cameraDistance=camera_cfg["distance"],
+            cameraYaw=camera_cfg["yaw"],
+            cameraPitch=camera_cfg["pitch"],
+            cameraTargetPosition=camera_cfg["target"],
+            physicsClientId=self.id
+        )
 
         # Initialize the tool in the robot's gripper
         self.tool.init(self.robot, self.task, self.directory, self.id, self.np_random, right=True, mesh_scale=[0.08]*3)
