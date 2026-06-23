@@ -30,6 +30,18 @@ class FeedingEnv(AssistiveEnv):
         reward = self.config('distance_weight')*reward_distance_mouth_target + self.config('action_weight')*reward_action + self.config('food_reward_weight')*reward_food + preferences_score
         # print(self.config('distance_weight')*reward_distance_mouth_target, self.config('action_weight')*reward_action, self.config('food_reward_weight')*reward_food, preferences_score)
 
+        ##############################################################
+        # Get the joint states of the robot
+        _, motor_positions, _, _ = self.robot.get_motor_joint_states()
+        spoon_pos_real, spoon_orient_real = self.robot.convert_to_realworld(spoon_pos, spoon_orient)
+        print("\n=== Data from the environment ===")
+        print("\nTarget position: ", self.robot.convert_to_realworld(self.target_pos))
+        print("\nSpoon position: ", spoon_pos_real)
+        print("\nSpoon orient: ", spoon_orient_real)
+        print("\nJoint positions: ", motor_positions)
+        print("\nObservations: ", obs)
+        print("\nActions: ", action)
+
         if self.gui and reward_food != 0:
             print('Task success:', self.task_success, 'Food reward:', reward_food)
 

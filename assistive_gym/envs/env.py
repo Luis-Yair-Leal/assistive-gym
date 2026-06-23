@@ -1,6 +1,7 @@
 import os, time, configparser
 import numpy as np
 import gym
+import random
 from gym import spaces
 from gym.utils import seeding
 from screeninfo import get_monitors
@@ -212,7 +213,10 @@ class AssistiveEnv(gym.Env):
                 if isinstance(agent, Human) and agent.impairment == 'tremor':
                     if needs_action:
                         agent.target_joint_angles += action
-                    agent_joint_angles = agent.target_joint_angles + agent.tremors * (1 if self.iteration % 2 == 0 else -1)
+                    time_sec = self.iteration * self.time_step
+                    valor = random.choice([1, 2])
+                    agent_joint_angles = (agent.target_joint_angles + agent.tremors * np.sin(2*np.pi*0.6*time_sec) if valor == 1 else agent.target_joint_angles + agent.tremors * (1 if self.iteration % 2 == 0 else -1))
+
                 else:
                     agent_joint_angles += action
             if isinstance(agent, Robot) and agent.action_duplication is not None:
