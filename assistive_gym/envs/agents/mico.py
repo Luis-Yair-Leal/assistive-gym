@@ -23,12 +23,12 @@ class Mico(Robot):
                        'dressing': [1.33]*3,
                        'arm_manipulation': [1.05]*3}
         tool_pos_offset = {'scratch_itch': [0, 0, 0.02], # Position offset between tool and robot tool joint
-                           'feeding': [0.0, 0.0, 0.1], # Original offset between spoon and end effector [0.1, -0.0225, 0.03]
+                           'feeding': [-0.007, 0.0225, 0.1], # Original offset between spoon and end effector [0.1, -0.0225, 0.03]
                            'drinking': [0.05, -0.005, 0],
                            'bed_bathing': [-0.01, 0, 0.03],
                            'arm_manipulation': [0.075, 0, 0.14]}
         tool_orient_offset = {'scratch_itch': [0, -np.pi/2.0, 0], # RPY orientation offset between tool and robot tool joint
-                              'feeding': [0, np.pi, 0], # Original spoon orientation [-0.1, np.pi/2.0, 0.0],
+                              'feeding': [0, np.pi, -np.pi/2.0], # Original spoon orientation [-0.1, np.pi/2.0, 0.0], [0, np.pi, np.pi/2.0]
                               'drinking': [0, -np.pi/2.0, np.pi/2.0],
                               'bed_bathing': [0, -np.pi/2.0, 0],
                               'arm_manipulation': [np.pi/2.0, -np.pi/2.0, 0]}
@@ -41,7 +41,7 @@ class Mico(Robot):
                                'dressing': [0.35, -0.3, 0.3],
                                'arm_manipulation': [-0.25, 1.15, 0.6]}
         toc_ee_orient_rpy = {'scratch_itch': [0, np.pi/2.0, 0], # Initial end effector orientation
-                             'feeding': [np.pi/2.0, 0, np.pi],  # Original end effector orientation for feeding [np.pi/2.0, 0, np.pi/2.0],
+                             'feeding': [0, 0, -np.pi/2],  # Original end effector orientation for feeding [np.pi/2.0, 0, -np.pi/2.0],
                              'drinking': [0, np.pi/2.0, 0],
                              'bed_bathing': [0, np.pi/2.0, 0],
                              'dressing': [[0, -np.pi/2.0, 0]],

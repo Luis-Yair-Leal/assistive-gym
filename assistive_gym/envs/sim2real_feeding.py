@@ -1,5 +1,6 @@
 import numpy as np
 import pybullet as p
+import tf
 import csv #
 import os #
 import random
@@ -11,7 +12,7 @@ from .agents.furniture import Furniture
 class Sim2RealFeedingEnv(AssistiveEnv):
     def __init__(self, robot='mico', human=False):
         # Robot type, human,, task, frame_skipe,  time_step, observations of the robot (18 + joints - wheel joints), human observations (19 + body joints)
-        super(Sim2RealFeedingEnv, self).__init__(robot=robot, human=human, task='feeding', frame_skip=5, time_step=0.02, obs_robot_len=(18 + len(robot.controllable_joint_indices) - (len(robot.wheel_joint_indices) if robot.mobile else 0)), obs_human_len=(19 + len(human.controllable_joint_indices)))
+        super(Sim2RealFeedingEnv, self).__init__(robot=robot, human=human, task='feeding', frame_skip=4, time_step=0.02, obs_robot_len=(18 + len(robot.controllable_joint_indices) - (len(robot.wheel_joint_indices) if robot.mobile else 0)), obs_human_len=(19 + len(human.controllable_joint_indices)))
         self.camera_configs = [
             {
                 "distance": 1.10,
@@ -32,16 +33,16 @@ class Sim2RealFeedingEnv(AssistiveEnv):
                 "target": [0.2, 0.0, 0.75]
             },
             {
-                "distance": 1.30,
-                "yaw": 120,
-                "pitch": -50,
-                "target": [0.2, 0.0, 0.75]
+               "distance": 1.30,
+               "yaw": 120,
+               "pitch": -50,
+               "target": [0.2, 0.0, 0.75]
             },
             {
-                "distance": 1.30,
-                "yaw": 270,
-                "pitch": -30,
-                "target": [0.2, 0.0, 0.75]
+               "distance": 1.30,
+               "yaw": 270,
+               "pitch": -30,
+               "target": [0.2, 0.0, 0.75]
             }
             ]
 
@@ -80,6 +81,18 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         print("\nJoint positions: ", motor_positions)
         print("\nObservations: ", obs)
         print("\nActions: ", action)
+        robot_joint_angles1 = self.robot.get_joint_angles(self.robot.controllable_joint_indices) 
+        robot_joint_angles2 = (np.array(robot_joint_angles1) + np.pi) % (2*np.pi) - np.pi # Fix joint angles to be in [-pi, pi]
+        print("Original angles: ", robot_joint_angles1)
+        print("Clipped angles: ", robot_joint_angles2)
+        # head_pos, head_orient = self.human.get_pos_orient(self.human.head)  # Local position and orientation of the head
+        # print("Head pose: ", head_pos)
+        # head_oriented_xyz = tf.transformations.euler_from_quaternion(head_orient)
+        # print("Head orient: ", head_oriented_xyz)
+        # head_robot = tf.transformations.euler_from_quaternion(obs[19:23])
+        # print("Head orient robot frame: ", head_robot)
+        #R = tf.transformations.quaternion_matrix(head_orient)
+        #print(R)
 
         nombre_archivo = 'trayectoria_robot.csv'
         
@@ -342,7 +355,6 @@ class Sim2RealFeedingEnv(AssistiveEnv):
 
         return food_reward, reward
     
-
 
     def get_total_force(self):
         '''Get the robot force applied on human and the force spoon force applied on human.'''
