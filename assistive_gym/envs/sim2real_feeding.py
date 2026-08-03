@@ -81,10 +81,10 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         print("\nJoint positions: ", motor_positions)
         print("\nObservations: ", obs)
         print("\nActions: ", action)
-        robot_joint_angles1 = self.robot.get_joint_angles(self.robot.controllable_joint_indices) 
-        robot_joint_angles2 = (np.array(robot_joint_angles1) + np.pi) % (2*np.pi) - np.pi # Fix joint angles to be in [-pi, pi]
-        print("Original angles: ", robot_joint_angles1)
-        print("Clipped angles: ", robot_joint_angles2)
+        #robot_joint_angles1 = self.robot.get_joint_angles(self.robot.controllable_joint_indices) 
+        #robot_joint_angles2 = (np.array(robot_joint_angles1) + np.pi) % (2*np.pi) - np.pi # Fix joint angles to be in [-pi, pi]
+        #print("Original angles: ", robot_joint_angles1)
+        #print("Clipped angles: ", robot_joint_angles2)
         # head_pos, head_orient = self.human.get_pos_orient(self.human.head)  # Local position and orientation of the head
         # print("Head pose: ", head_pos)
         # head_oriented_xyz = tf.transformations.euler_from_quaternion(head_orient)
