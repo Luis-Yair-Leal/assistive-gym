@@ -99,7 +99,16 @@ class Human(Agent):
         super(Human, self).init(self.body, id, np_random, self.controllable_joint_indices)
 
         # By default, initialize the person in the wheelchair
-        self.set_base_pos_orient([0, 0.03, 0.89 if self.gender == 'male' else 0.86], [0, 0, 0, 1])
+
+        offset_x = self.np_random.uniform(-0.05, 0.05)
+        offset_y = self.np_random.uniform(-0.05, 0.05)
+        offset_z = self.np_random.uniform(-0.03, 0.03) # 5 cm in X, 5 cm in Y, 0 in Z Domain Randomization
+
+        offset = np.array([offset_x, offset_y, offset_z])
+
+        base_pos = np.array([0, 0.03, 0.88 if self.gender == "male" else 0.88])
+        self.set_base_pos_orient(base_pos + offset, [0, 0, 0, 1])
+        #self.set_base_pos_orient([0, 0.03, 0.89 if self.gender == 'male' else 0.86], [0, 0, 0, 1])
 
     def setup_joints(self, joints_positions, use_static_joints=True, reactive_force=None, reactive_gain=0.05):
         # Set static joints

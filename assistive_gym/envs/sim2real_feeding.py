@@ -62,7 +62,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         obs = self._get_obs() # Get the observation after the action
 
         # Get human preferences Editar para que vaya dentro de la función de recompensa
-        reward_food, reward_total = self.get_food_rewards() # Takes the rewards, the velocities list, and special reward for hitting person
+        reward_food, reward_total, theta= self.get_food_rewards() # Takes the rewards, the velocities list, and special reward for hitting person
 
         reward_action = -np.linalg.norm(action) # Penalize actions
 
@@ -85,14 +85,15 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         #robot_joint_angles2 = (np.array(robot_joint_angles1) + np.pi) % (2*np.pi) - np.pi # Fix joint angles to be in [-pi, pi]
         #print("Original angles: ", robot_joint_angles1)
         #print("Clipped angles: ", robot_joint_angles2)
-        # head_pos, head_orient = self.human.get_pos_orient(self.human.head)  # Local position and orientation of the head
-        # print("Head pose: ", head_pos)
-        # head_oriented_xyz = tf.transformations.euler_from_quaternion(head_orient)
-        # print("Head orient: ", head_oriented_xyz)
-        # head_robot = tf.transformations.euler_from_quaternion(obs[19:23])
-        # print("Head orient robot frame: ", head_robot)
+        head_pos, head_orient = self.human.get_pos_orient(self.human.head)  # Local position and orientation of the head
+        print("Head pose: ", head_pos)
+        head_oriented_xyz = tf.transformations.euler_from_quaternion(head_orient)
+        print("Head orient: ", head_oriented_xyz)
+        head_robot = tf.transformations.euler_from_quaternion(obs[19:23])
+        print("Head orient robot frame: ", head_robot)
         #R = tf.transformations.quaternion_matrix(head_orient)
         #print(R)
+        print("Orientation Error: ", theta)
 
         nombre_archivo = 'trayectoria_robot.csv'
         
@@ -177,6 +178,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
     def reset(self):
         super(Sim2RealFeedingEnv, self).reset()
         self.build_assistive_env('wheelchair')
+
         if self.robot.wheelchair_mounted:
             wheelchair_pos, wheelchair_orient = self.furniture.get_base_pos_orient()
             self.robot.set_base_pos_orient(wheelchair_pos + np.array(self.robot.toc_base_pos_offset[self.task]), [0, 0, -np.pi/2.0])
@@ -317,6 +319,36 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         end_effector_velocity = np.linalg.norm(self.robot.get_velocity(self.robot.right_end_effector))
 
         # ---------------------------------
+        # Reward related of head orientation approach
+        # ---------------------------------
+        R_ee = np.array([[-1, 0, 0, 0],
+                         [ 0, 0, 1, 0],
+                         [ 0, 1, 0, 0],
+                         [ 0, 0, 0, 1]])
+        ee_orient = tf.transformations.quaternion_from_matrix(R_ee)
+        
+        _ , q_2 = self.robot.get_pos_orient(self.robot.right_end_effector, convert_to_realworld = True) # Global orientation of end efector
+
+        head_pos, head_orient = self.human.get_pos_orient(self.human.head)  # Local position and orientation of the head
+        _,head_orient_real = self.robot.convert_to_realworld(head_pos, head_orient) # Global orientation of the head
+
+        #R_head = tf.transformations.quaternion_matrix(head_orient_real) # Homogeneous matrix of head
+        #R_aa = np.dot(R_head, R_ee) # New orientation of head
+        #R_a = tf.transformations.quaternion_from_matrix(R_aa) # Quaternion of the new orientation 
+
+        q_1 = tf.transformations.quaternion_multiply(head_orient_real, ee_orient) # Product of quaternions
+
+        q_1 = q_1 / np.linalg.norm(q_1)
+        q_2 = q_2 / np.linalg.norm(q_2) #Normalization
+
+        q_1_inv = tf.transformations.quaternion_inverse(q_1) # Inverse of quaternion 1
+        q_r = tf.transformations.quaternion_multiply(q_2, q_1_inv)  # Relative quaternion
+        w_err = np.clip(np.abs(q_r[3]), -1.0, 1.0)
+
+        theta_error = 2.0 * np.arccos(w_err)
+
+        theta_error_deg = np.rad2deg(theta_error)
+        # ---------------------------------
         # Tasks success
         # ---------------------------------
         for f in self.foods:
@@ -351,9 +383,9 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         preferences_score = self.human_preferences(end_effector_velocity=end_effector_velocity, total_force_on_human=self.total_force_on_human, tool_force_at_target=self.spoon_force_on_human, food_hit_human_reward=food_hit_human_reward, food_mouth_velocities=food_mouth_velocities)
 
 
-        reward = self.config('distance_weight')*reward_distance_mouth_target + preferences_score - 1.0 * tilt_penalty 
+        reward = self.config('distance_weight')*reward_distance_mouth_target + preferences_score - 2.0 * tilt_penalty - 1.0 * theta_error
 
-        return food_reward, reward
+        return food_reward, reward, theta_error_deg
     
 
     def get_total_force(self):
