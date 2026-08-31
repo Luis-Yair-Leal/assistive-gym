@@ -301,6 +301,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         # ---------------------------------
         reward_force_nontarget = -self.total_force_on_human
         '''
+        
         # ---------------------------------
         # Spoon Reward
         # ---------------------------------
@@ -321,22 +322,13 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         # ---------------------------------
         # Reward related of head orientation approach
         # ---------------------------------
-        R_ee = np.array([[-1, 0, 0, 0],
-                         [ 0, 0, 1, 0],
+        R_ee = np.array([[ 0, 0,-1, 0],
+                         [-1, 0, 0, 0],
                          [ 0, 1, 0, 0],
                          [ 0, 0, 0, 1]])
-        ee_orient = tf.transformations.quaternion_from_matrix(R_ee)
+        q_1 = tf.transformations.quaternion_from_matrix(R_ee)
         
         _ , q_2 = self.robot.get_pos_orient(self.robot.right_end_effector, convert_to_realworld = True) # Global orientation of end efector
-
-        head_pos, head_orient = self.human.get_pos_orient(self.human.head)  # Local position and orientation of the head
-        _,head_orient_real = self.robot.convert_to_realworld(head_pos, head_orient) # Global orientation of the head
-
-        #R_head = tf.transformations.quaternion_matrix(head_orient_real) # Homogeneous matrix of head
-        #R_aa = np.dot(R_head, R_ee) # New orientation of head
-        #R_a = tf.transformations.quaternion_from_matrix(R_aa) # Quaternion of the new orientation 
-
-        q_1 = tf.transformations.quaternion_multiply(head_orient_real, ee_orient) # Product of quaternions
 
         q_1 = q_1 / np.linalg.norm(q_1)
         q_2 = q_2 / np.linalg.norm(q_2) #Normalization
@@ -354,7 +346,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         for f in self.foods:
             food_pos, food_orient = f.get_base_pos_orient()
             distance_to_mouth = np.linalg.norm(self.target_pos - food_pos)
-            if distance_to_mouth < 0.03:
+            if distance_to_mouth < 0.01:
                 # Food is close to the person's mouth. Delete particle and give robot a reward
                 food_reward += 20
                 self.task_success += 1
@@ -383,7 +375,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         preferences_score = self.human_preferences(end_effector_velocity=end_effector_velocity, total_force_on_human=self.total_force_on_human, tool_force_at_target=self.spoon_force_on_human, food_hit_human_reward=food_hit_human_reward, food_mouth_velocities=food_mouth_velocities)
 
 
-        reward = self.config('distance_weight')*reward_distance_mouth_target + preferences_score - 2.0 * tilt_penalty - 1.0 * theta_error
+        reward = self.config('distance_weight')*reward_distance_mouth_target + preferences_score - 1.0 * tilt_penalty - 0.5 * theta_error
 
         return food_reward, reward, theta_error_deg
     
@@ -397,7 +389,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
 
     def generate_target(self):
         '''Set the target point on the mouth.'''
-        self.mouth_pos = [0, -0.11, 0.03] if self.human.gender == 'male' else [0, -0.1, 0.03]
+        self.mouth_pos = [0, -0.14, 0.03] if self.human.gender == 'male' else [0, -0.13, 0.03]
         head_pos, head_orient = self.human.get_pos_orient(self.human.head)
         target_pos, target_orient = p.multiplyTransforms(head_pos, head_orient, self.mouth_pos, [0, 0, 0, 1], physicsClientId=self.id)
         self.target = self.create_sphere(radius=0.01, mass=0.0, pos=target_pos, collision=False, rgba=[0, 1, 0, 1])
