@@ -78,6 +78,8 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         print("\nTarget position: ", self.robot.convert_to_realworld(self.target_pos))
         print("\nSpoon position: ", spoon_pos_real)
         print("\nSpoon orient: ", spoon_orient_real)
+        spoon_real_degrees = tf.transformations.euler_from_quaternion(spoon_orient_real)
+        print("\nSpoon orient degrees: ", spoon_real_degrees)
         print("\nJoint positions: ", motor_positions)
         print("\nObservations: ", obs)
         print("\nActions: ", action)
@@ -116,8 +118,8 @@ class Sim2RealFeedingEnv(AssistiveEnv):
             print('Task success:', self.task_success, 'Food reward:', reward_food)
 
         info = {'total_force_on_human': self.total_force_on_human, 'task_success': int(self.task_success >= self.total_food_count*self.config('task_success_threshold')), 'action_robot_len': self.action_robot_len, 'action_human_len': self.action_human_len, 'obs_robot_len': self.obs_robot_len, 'obs_human_len': self.obs_human_len}
-        done = self.iteration >= 200
-        #done = self.task_success > 0
+        #done = self.iteration >= 200
+        done = self.task_success > 0
         
         if not self.human.controllable:
             return obs, reward, done, info
@@ -312,7 +314,14 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         # Reward related of tilt
         # ---------------------------------
         roll, pitch, yaw = p.getEulerFromQuaternion(spoon_orient) # Convert spoon orientation to euler angles
-        tilt_penalty = abs(yaw) + abs(pitch) # Penalty for tilt
+        #tilt_penalty = abs(yaw) + abs(pitch) # Penalty for tilt
+
+        if self.prev_spoon_orient is not None:
+            prev_roll, prev_pitch, prev_yaw = p.getEulerFromQuaternion(self.prev_spoon_orient)
+            tilt_penalty = abs(yaw - prev_yaw) + abs(pitch - prev_pitch)
+        else:
+            tilt_penalty = 0
+        self.prev_spoon_orient = spoon_orient
 
         # ---------------------------------
         # Get human preferences
@@ -346,7 +355,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         for f in self.foods:
             food_pos, food_orient = f.get_base_pos_orient()
             distance_to_mouth = np.linalg.norm(self.target_pos - food_pos)
-            if distance_to_mouth < 0.01:
+            if abs(reward_distance_mouth_target) < 0.01:
                 # Food is close to the person's mouth. Delete particle and give robot a reward
                 food_reward += 20
                 self.task_success += 1
@@ -375,7 +384,7 @@ class Sim2RealFeedingEnv(AssistiveEnv):
         preferences_score = self.human_preferences(end_effector_velocity=end_effector_velocity, total_force_on_human=self.total_force_on_human, tool_force_at_target=self.spoon_force_on_human, food_hit_human_reward=food_hit_human_reward, food_mouth_velocities=food_mouth_velocities)
 
 
-        reward = self.config('distance_weight')*reward_distance_mouth_target + preferences_score - 1.0 * tilt_penalty - 0.5 * theta_error
+        reward = self.config('distance_weight')*reward_distance_mouth_target + preferences_score - 1.0 * tilt_penalty - 0.1 * theta_error
 
         return food_reward, reward, theta_error_deg
     
